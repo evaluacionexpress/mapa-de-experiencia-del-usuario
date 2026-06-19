@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluación Express — Simulador de Mapa de Experiencia del Cliente (UX)</title>
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --bg2:#F7F6F3;
+    --bg3:#F1EFE8;
+    --text:#1A1A1A;
+    --text2:#5F5E5A;
+    --text3:#888780;
+    --border:#E2E0D8;
+    --border2:#CFCDC3;
+    --orange:#E8540C;
+    --orange-dark:#993C1D;
+    --green-bg:#EAF3DE;
+    --green-text:#27500A;
+    --green-border:#97C459;
+    --amber-bg:#FAEEDA;
+    --amber-text:#633806;
+    --amber-border:#EF9F27;
+    --red-bg:#FCEBEB;
+    --red-text:#791F1F;
+    --red-border:#F09595;
+    --gray-bg:#F1EFE8;
+    --gray-text:#5F5E5A;
+    --gray-border:#B4B2A9;
+    --info-text:#185FA5;
+    --radius-md:8px;
+    --radius-lg:12px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#1E1E1C;
+      --bg2:#272725;
+      --bg3:#2C2C2A;
+      --text:#F1EFE8;
+      --text2:#B4B2A9;
+      --text3:#888780;
+      --border:#444441;
+      --border2:#5F5E5A;
+      --orange:#FAC775;
+      --orange-dark:#FAEEDA;
+      --green-bg:#173404;
+      --green-text:#C0DD97;
+      --green-border:#3B6D11;
+      --amber-bg:#412402;
+      --amber-text:#FAC775;
+      --amber-border:#854F0B;
+      --red-bg:#501313;
+      --red-text:#F7C1C1;
+      --red-border:#A32D2D;
+      --gray-bg:#2C2C2A;
+      --gray-text:#D3D1C7;
+      --gray-border:#5F5E5A;
+      --info-text:#85B7EB;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg2);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    color:var(--text);
+    line-height:1.5;
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:640px;margin:0 auto}
+  .masthead{
+    background:#1A1A1A;
+    color:#fff;
+    border-radius:var(--radius-lg);
+    padding:20px 22px;
+    margin-bottom:20px;
+  }
+  .masthead .eyebrow{
+    font-size:11px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    color:#FAC775;
+    margin:0 0 6px;
+  }
+  .masthead h1{
+    font-size:20px;
+    font-weight:500;
+    margin:0 0 4px;
+  }
+  .masthead p{
+    font-size:13px;
+    color:#D3D1C7;
+    margin:0;
+  }
+  .intro{
+    font-size:13px;
+    color:var(--text2);
+    margin-bottom:18px;
+  }
+  #progress{
+    display:flex;
+    gap:4px;
+    margin-bottom:20px;
+  }
+  #progress .seg{
+    flex:1;
+    height:4px;
+    border-radius:2px;
+    background:var(--border2);
+    transition:background .2s;
+  }
+  #progress .seg.active{ background:var(--info-text); }
+
+  .card{
+    background:var(--bg);
+    border:0.5px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:20px;
+  }
+  .stage-label{
+    font-size:11px;
+    color:var(--text3);
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+  }
+  .stage-momento{
+    font-size:16px;
+    font-weight:500;
+    margin-top:4px;
+  }
+  .stage-kpi{
+    font-size:12px;
+    color:var(--info-text);
+    margin-top:6px;
+  }
+  .branches{ margin-top:16px; }
+  .branch-btn{
+    display:block;
+    width:100%;
+    text-align:left;
+    padding:13px 14px;
+    margin-top:8px;
+    border-radius:var(--radius-md);
+    cursor:pointer;
+    font-family:inherit;
+    border-width:0.5px;
+    border-style:solid;
+    transition:transform .1s, filter .15s;
+  }
+  .branch-btn:hover{ filter:brightness(0.97); }
+  .branch-btn:active{ transform:scale(0.98); }
+  .branch-title{ font-size:14px; font-weight:500; }
+  .branch-sub{ font-size:12px; color:var(--text2); margin-top:2px; }
+
+  .b-green{ background:var(--green-bg); border-color:var(--green-border); }
+  .b-green .branch-title{ color:var(--green-text); }
+  .b-amber{ background:var(--amber-bg); border-color:var(--amber-border); }
+  .b-amber .branch-title{ color:var(--amber-text); }
+  .b-red{ background:var(--red-bg); border-color:var(--red-border); }
+  .b-red .branch-title{ color:var(--red-text); }
+  .b-gray{ background:var(--gray-bg); border-color:var(--gray-border); }
+  .b-gray .branch-title{ color:var(--gray-text); }
+
+  #path-log{ margin-top:22px; }
+  .log-title{
+    font-size:11px;
+    color:var(--text3);
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    margin-bottom:8px;
+  }
+  .log-item{
+    display:flex;
+    gap:10px;
+    padding:10px 0;
+    border-top:0.5px solid var(--border);
+  }
+  .log-dot{
+    width:8px;height:8px;border-radius:50%;
+    margin-top:6px;flex-shrink:0;
+  }
+  .dot-green{ background:var(--green-border); }
+  .dot-amber{ background:var(--amber-border); }
+  .dot-red{ background:var(--red-border); }
+  .dot-gray{ background:var(--gray-border); }
+  .log-etapa{ font-size:13px; font-weight:500; }
+  .log-detail{ font-size:12px; color:var(--text2); margin-top:2px; }
+
+  #summary{ display:none; margin-top:22px; }
+  .end-card{
+    border-radius:var(--radius-lg);
+    padding:20px;
+    border-width:0.5px;
+    border-style:solid;
+  }
+  .end-title{ font-size:15px; font-weight:500; }
+  .end-text{ font-size:13px; color:var(--text2); margin-top:4px; }
+
+  button.reset-btn{
+    margin-top:12px;
+    width:100%;
+    padding:11px 14px;
+    border-radius:var(--radius-md);
+    border:0.5px solid var(--border2);
+    background:var(--bg);
+    color:var(--text);
+    font-family:inherit;
+    font-size:14px;
+    cursor:pointer;
+  }
+  button.reset-btn:hover{ background:var(--bg3); }
+
+  footer{
+    margin-top:28px;
+    text-align:center;
+    font-size:11px;
+    color:var(--text3);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <p class="eyebrow">Evaluación Express · Materia: Diseño y gestión de planes, programas y proyectos deportivos</p>
+    <h1>Simulador del mapa de experiencia del cliente (UX)</h1>
+    <p>Recorré las 7 etapas del journey y elegí qué pasa en cada bifurcación.</p>
+  </div>
+
+  <div class="intro">Cada decisión refleja una rama real del sheet de mensajes predeterminados (rama "a" = respuesta positiva, rama "b" = excepción). Probá distintos caminos.</div>
+
+  <div id="progress"></div>
+
+  <div id="stage-card" class="card"></div>
+
+  <div id="path-log"></div>
+
+  <div id="summary"></div>
+
+  <footer>LARD — Brandoni Enzo Rubén — 2026 — Evaluación Express — UX</footer>
+</div>
+
+<script>
+const stages = [
+{
+  id:1, etapa:"Etapa 1 — Captación", momento:"El club ve la publicación en Instagram",
+  kpi:"Meta: tasa de conversión IG > 15%",
+  branches:[
+    {label:"El club escribe", sub:"responde por WhatsApp o Instagram", color:"green", next:2,
+      detail:"Recepción/Ventas responde en menos de 1 hora con mensaje de bienvenida."},
+    {label:"No escribe", sub:"lead frío de pauta", color:"amber", next:1.5,
+      detail:"Se dispara secuencia automática de 3 mensajes (Día 0, 2 y 5) ofreciendo info de planes."}
+  ]
+},
+{
+  id:1.5, etapa:"Etapa 1b — Recuperación", momento:"Secuencia automática enviada, ¿responde luego?",
+  kpi:"Meta: recuperación a 30 días < 10%",
+  branches:[
+    {label:"Responde", sub:"se reengancha al funnel", color:"green", next:2,
+      detail:"Pasa a calificación como un lead normal."},
+    {label:"No responde", sub:"se reintenta en 30 días", color:"red", next:"end_lost",
+      detail:"Queda en lista Dejó de Responder, reintento programado a 30 días."}
+  ]
+},
+{
+  id:2, etapa:"Etapa 2 — Calificación y agenda", momento:"¿Cumple criterios de acceso? (equipo, espacio físico)",
+  kpi:"Meta: tasa de calificación > 70%",
+  branches:[
+    {label:"Sí califica", sub:"agenda turno", color:"green", next:3,
+      detail:"Vendedor/Closer ofrece 2-3 horarios y envía Google Meet. Meta: agendamiento dentro de 2hs."},
+    {label:"No califica", sub:"sin espacio físico, etc.", color:"red", next:"end_unqualified",
+      detail:"Se explica el motivo y se deriva a info general o lista de espera."}
+  ]
+},
+{
+  id:3, etapa:"Etapa 3 — Confirmación y cobro", momento:"Se acordó fecha y plan (Pareto / Ginóbili / Messi)",
+  kpi:"Meta: confirmación en 24hs > 85%",
+  branches:[
+    {label:"Confirma y abona", sub:"pago recibido", color:"green", next:4,
+      detail:"Se envía checklist: certificado médico, autorización de tutores si hay menores."},
+    {label:"No abona en plazo", sub:"se reagenda o libera el turno", color:"amber", next:"end_nopay",
+      detail:"CRM reintenta a los 15 días si no hay respuesta."}
+  ]
+},
+{
+  id:4, etapa:"Etapa 4 — Pre-jornada", momento:"Faltan 24-48hs para la evaluación",
+  kpi:"Meta: confirmación de asistencia > 95%",
+  branches:[
+    {label:"Confirma asistencia", sub:"sigue en pie", color:"green", next:5,
+      detail:"Coordinador envía dirección, indumentaria y equipo de evaluadores asignado."}
+  ]
+},
+{
+  id:5, etapa:"Etapa 5 — Jornada de evaluación", momento:"Equipo llega al club y ejecuta la batería de tests",
+  kpi:"Meta: tiempo de acción no supera 2hs",
+  branches:[
+    {label:"Sin imprevistos", sub:"jornada normal", color:"green", next:6,
+      detail:"Se ejecuta el protocolo completo del plan contratado."},
+    {label:"Surge imprevisto", sub:"clima, lesión, atraso", color:"amber", next:6,
+      detail:"Se adapta el protocolo en cancha o se reagenda al atleta afectado. Meta: reagendado en 24hs > 80%."}
+  ]
+},
+{
+  id:6, etapa:"Etapa 6 — Post-venta", momento:"Se procesan los datos y se envía el informe",
+  kpi:"Meta: envío de informe en 48hs > 98%",
+  branches:[
+    {label:"Cliente conforme", sub:"queda satisfecho", color:"green", next:7,
+      detail:"Se envía encuesta de satisfacción. Meta: NPS > 8 y cierre de venta 70%."},
+    {label:"Dudas o reclamo", sub:"sobre el informe", color:"amber", next:7,
+      detail:"Coordinador agenda llamada de devolución. Meta: resolución < 4hs y NPS > 8."}
+  ]
+},
+{
+  id:7, etapa:"Etapa 7 — Fidelización", momento:"Pasaron 2-3 meses desde la última evaluación",
+  kpi:"Meta: recompra a 90 días > 70%",
+  branches:[
+    {label:"Recompra", sub:"vuelve a Etapa 3", color:"green", next:"end_loop",
+      detail:"El cliente reingresa al ciclo de Confirmación y cobro. El journey se repite."},
+    {label:"No recompra aún", sub:"sigue en nurturing", color:"gray", next:"end_nurture",
+      detail:"Continúa recibiendo contenido de valor mensual hasta la próxima reevaluación."}
+  ]
+}
+];
+
+const endings = {
+  end_lost:{title:"Lead perdido", text:"No respondió tras la secuencia de recuperación. Se reintentará en 30 días.", color:"red"},
+  end_unqualified:{title:"No calificado", text:"No cumple los criterios de acceso del protocolo en este momento.", color:"red"},
+  end_nopay:{title:"No confirmó pago", text:"El turno fue liberado. CRM reintenta contacto a los 15 días.", color:"amber"},
+  end_loop:{title:"Cliente fidelizado", text:"Recompra y vuelve a entrar por Etapa 3. El ciclo de fidelización se repite.", color:"green"},
+  end_nurture:{title:"En nurturing", text:"Sigue recibiendo contenido mensual hasta decidir una nueva evaluación.", color:"gray"}
+};
+
+let currentId = 1;
+let path = [];
+const mainStages = [1,2,3,4,5,6,7];
+
+function findStage(id){ return stages.find(s=>s.id===id); }
+
+function renderProgress(){
+  const el = document.getElementById('progress');
+  el.innerHTML = mainStages.map(id=>{
+    const reached = path.some(p=>Math.floor(p.id)===id) || Math.floor(currentId)===id;
+    return '<div class="seg' + (reached ? ' active' : '') + '"></div>';
+  }).join('');
+}
+
+function renderStage(){
+  const stage = findStage(currentId);
+  const card = document.getElementById('stage-card');
+  if(!stage){ card.style.display='none'; return; }
+  card.style.display='block';
+
+  const branchesHtml = stage.branches.map((b,i)=>{
+    return '<button class="branch-btn b-' + b.color + '" onclick="choose(' + i + ')">' +
+      '<div class="branch-title">' + b.label + '</div>' +
+      '<div class="branch-sub">' + b.sub + '</div>' +
+    '</button>';
+  }).join('');
+
+  card.innerHTML =
+    '<div class="stage-label">' + stage.etapa + '</div>' +
+    '<div class="stage-momento">' + stage.momento + '</div>' +
+    '<div class="stage-kpi">' + stage.kpi + '</div>' +
+    '<div class="branches">' + branchesHtml + '</div>';
+
+  renderProgress();
+}
+
+function choose(branchIndex){
+  const stage = findStage(currentId);
+  const branch = stage.branches[branchIndex];
+  path.push({id:stage.id, etapa:stage.etapa, choice:branch.label, detail:branch.detail, color:branch.color});
+  renderPathLog();
+
+  if(typeof branch.next === 'string'){
+    showEnding(branch.next);
+  } else {
+    currentId = branch.next;
+    renderStage();
+  }
+}
+
+function renderPathLog(){
+  const el = document.getElementById('path-log');
+  if(path.length===0){ el.innerHTML=''; return; }
+  el.innerHTML = '<div class="log-title">Camino recorrido</div>' +
+    path.map(p=>{
+      return '<div class="log-item">' +
+        '<div class="log-dot dot-' + p.color + '"></div>' +
+        '<div>' +
+          '<div class="log-etapa">' + p.etapa + ': ' + p.choice + '</div>' +
+          '<div class="log-detail">' + p.detail + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+}
+
+function showEnding(key){
+  document.getElementById('stage-card').style.display='none';
+  const end = endings[key];
+  const summary = document.getElementById('summary');
+  summary.style.display='block';
+  summary.innerHTML =
+    '<div class="end-card b-' + end.color + '">' +
+      '<div class="end-title">' + end.title + '</div>' +
+      '<div class="end-text">' + end.text + '</div>' +
+    '</div>' +
+    '<button class="reset-btn" onclick="reset()">Reiniciar simulación</button>';
+}
+
+function reset(){
+  currentId = 1;
+  path = [];
+  document.getElementById('summary').style.display='none';
+  document.getElementById('summary').innerHTML='';
+  document.getElementById('path-log').innerHTML='';
+  renderStage();
+}
+
+renderStage();
+</script>
+</body>
+</html>
