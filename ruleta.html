@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluación Express — Girá y Ganá</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%;background:#0E1116;font-family:Arial,sans-serif}
+  body{display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
+
+  .wrap{width:100%;max-width:420px;margin:0 auto;text-align:center}
+
+  .logo-badge{display:inline-block;background:#E8540C;color:#0E1116;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 14px;border-radius:4px;margin-bottom:1rem}
+
+  h1{font-size:26px;font-weight:800;color:#fff;margin-bottom:.3rem}
+  .sub{font-size:14px;color:#A9AFB8;line-height:1.6;margin-bottom:2rem}
+
+  .wheel-wrap{position:relative;width:300px;height:300px;margin:0 auto 1.75rem}
+  canvas{border-radius:50%;display:block}
+  .pointer{
+    position:absolute;top:-20px;left:50%;transform:translateX(-50%);
+    width:0;height:0;
+    border-left:14px solid transparent;
+    border-right:14px solid transparent;
+    border-top:30px solid #E8540C;
+  }
+
+  .spin-btn{
+    display:block;width:100%;padding:15px;
+    background:#E8540C;color:#fff;
+    border:none;border-radius:10px;
+    font-size:17px;font-weight:800;
+    cursor:pointer;letter-spacing:.03em;
+    transition:background .15s,transform .1s;
+  }
+  .spin-btn:hover{background:#FF6B20}
+  .spin-btn:active{transform:scale(.98)}
+  .spin-btn:disabled{background:#2A2F38;color:#5F5E5A;cursor:not-allowed}
+
+  .result-card{
+    display:none;margin-top:1.75rem;
+    background:#171B22;border:1px solid #E8540C;border-radius:14px;
+    padding:1.5rem;text-align:left;
+  }
+  .result-card.show{display:block}
+
+  .result-eyebrow{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#FF8A50;margin-bottom:.4rem}
+  .result-title{font-size:22px;font-weight:800;color:#fff;margin-bottom:.75rem;line-height:1.2}
+  .result-desc{font-size:13px;color:#A9AFB8;line-height:1.7;margin-bottom:1rem}
+
+  .code-box{
+    background:#0E1116;border:1px solid #2A2F38;border-radius:6px;
+    padding:.6rem 1rem;font-size:14px;color:#FAC775;
+    font-family:monospace;letter-spacing:.06em;
+    text-align:center;margin-bottom:1rem;
+  }
+
+  .cta-btn{
+    display:block;width:100%;padding:13px;
+    background:#1B6B3C;color:#7FE3A6;
+    border:1px solid #1B6B3C;border-radius:8px;
+    font-size:14px;font-weight:700;
+    text-decoration:none;text-align:center;
+    transition:background .15s;
+  }
+  .cta-btn:hover{background:#27500A}
+
+  .note{margin-top:1rem;font-size:11px;color:#5F5E5A;text-align:center;line-height:1.5}
+
+  .footer{margin-top:2.5rem;font-size:11px;color:#444441;text-align:center}
+  .footer span{color:#E8540C}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="logo-badge">Evaluación Express</div>
+  <h1>Girá y ganá</h1>
+  <p class="sub">Tenés un premio esperándote.<br>Dale spin y descubrí cuál es.</p>
+
+  <div class="wheel-wrap">
+    <div class="pointer"></div>
+    <canvas id="wheel" width="300" height="300"></canvas>
+  </div>
+
+  <button class="spin-btn" id="spinBtn" onclick="spin()">Girar la ruleta</button>
+
+  <div class="result-card" id="resultCard">
+    <p class="result-eyebrow">Tu premio</p>
+    <p class="result-title" id="prizeName"></p>
+    <p class="result-desc" id="prizeDesc"></p>
+    <p class="code-box" id="prizeCode"></p>
+    <a class="cta-btn" id="ctaBtn" href="#" target="_blank" rel="noopener">
+      Reclamar mi premio por WhatsApp
+    </a>
+    <p class="note">Mostrá este código al momento de contratar tu plan.<br>Válido por 30 días.</p>
+  </div>
+
+  <p class="footer">Evaluación <span>Express</span> · @evaluacion.express · 11 2390-4060</p>
+
+</div>
+
+<script>
+const prizes = [
+  {
+    name: "10% OFF en tu plan",
+    short: ["10% OFF","en tu plan"],
+    color: "#E8540C",
+    desc: "Aplicá el descuento a cualquiera de nuestros 3 planes: Pareto, Ginóbili o Messi. Válido para tu primera evaluación.",
+    code: "CÓDIGO: EE-DESC10",
+    cta: "https://wa.me/5491123904060?text=Hola!%20Gir%C3%A9%20la%20ruleta%20y%20gan%C3%A9%20el%2010%25%20OFF.%20Mi%20c%C3%B3digo%20es%20EE-DESC10%20%F0%9F%8E%81"
+  },
+  {
+    name: "1 atleta evaluado gratis",
+    short: ["1 atleta","gratis"],
+    color: "#1B6B3C",
+    desc: "Sumate el valor de una evaluación individual extra dentro del plan que elijas. Sin costo adicional, sin condiciones.",
+    code: "CÓDIGO: EE-ATLETA1",
+    cta: "https://wa.me/5491123904060?text=Hola!%20Gir%C3%A9%20la%20ruleta%20y%20gan%C3%A9%20un%20atleta%20evaluado%20gratis.%20Mi%20c%C3%B3digo%20es%20EE-ATLETA1%20%F0%9F%8E%81"
+  },
+  {
+    name: "Informe individual gratis",
+    short: ["Informe","individual gratis"],
+    color: "#185FA5",
+    desc: "Un informe de rendimiento completo para un atleta clave de tu equipo. Sin costo, sin letra chica.",
+    code: "CÓDIGO: EE-INFORM1",
+    cta: "https://wa.me/5491123904060?text=Hola!%20Gir%C3%A9%20la%20ruleta%20y%20gan%C3%A9%20un%20informe%20individual%20gratis.%20Mi%20c%C3%B3digo%20es%20EE-INFORM1%20%F0%9F%8E%81"
+  },
+  {
+    name: "Prioridad de agenda",
+    short: ["Prioridad","de agenda"],
+    color: "#854F0B",
+    desc: "Tu club entra primero en el calendario de evaluaciones. Elegís fecha antes que nadie en tu zona.",
+    code: "CÓDIGO: EE-PRIOR1",
+    cta: "https://wa.me/5491123904060?text=Hola!%20Gir%C3%A9%20la%20ruleta%20y%20gan%C3%A9%20prioridad%20de%20agenda.%20Mi%20c%C3%B3digo%20es%20EE-PRIOR1%20%F0%9F%8E%81"
+  }
+];
+
+const N = prizes.length;
+const sliceAngle = 2 * Math.PI / N;
+let spinning = false;
+let currentAngle = -Math.PI / 2;
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const cx = 150, cy = 150, r = 140;
+
+function drawWheel(angle) {
+  ctx.clearRect(0, 0, 300, 300);
+
+  for (let i = 0; i < N; i++) {
+    const start = angle + i * sliceAngle;
+    const end = start + sliceAngle;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start, end);
+    ctx.closePath();
+    ctx.fillStyle = prizes[i].color;
+    ctx.fill();
+    ctx.strokeStyle = "#0E1116";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(start + sliceAngle / 2);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 11px Arial";
+    ctx.textAlign = "right";
+    const lines = prizes[i].short;
+    if (lines.length === 1) {
+      ctx.fillText(lines[0], r - 14, 4);
+    } else {
+      ctx.fillText(lines[0], r - 14, -6);
+      ctx.fillText(lines[1], r - 14, 10);
+    }
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 26, 0, 2 * Math.PI);
+  ctx.fillStyle = "#0E1116";
+  ctx.fill();
+  ctx.strokeStyle = "#E8540C";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.fillStyle = "#E8540C";
+  ctx.font = "bold 9px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("EE", cx, cy + 3);
+}
+
+drawWheel(currentAngle);
+
+function spin() {
+  if (spinning) return;
+  spinning = true;
+  document.getElementById("spinBtn").disabled = true;
+  document.getElementById("resultCard").classList.remove("show");
+
+  const winnerIndex = Math.floor(Math.random() * N);
+
+  const normalizedCurrent = ((currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  const targetSliceCenter = -Math.PI / 2 - (winnerIndex * sliceAngle + sliceAngle / 2);
+  const normalizedTarget = ((targetSliceCenter % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+
+  let delta = normalizedTarget - normalizedCurrent;
+  if (delta <= 0) delta += 2 * Math.PI;
+
+  const totalRotation = 2 * Math.PI * (5 + Math.random() * 3) + delta;
+  const startAngle = currentAngle;
+  const endAngle = currentAngle + totalRotation;
+
+  const duration = 4500;
+  const startTime = performance.now();
+
+  function frame(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 4);
+    currentAngle = startAngle + (endAngle - startAngle) * ease;
+    drawWheel(currentAngle);
+    if (progress < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      currentAngle = endAngle;
+      spinning = false;
+      showResult(winnerIndex);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function showResult(i) {
+  const p = prizes[i];
+  document.getElementById("prizeName").textContent = p.name;
+  document.getElementById("prizeDesc").textContent = p.desc;
+  document.getElementById("prizeCode").textContent = p.code;
+  const cta = document.getElementById("ctaBtn");
+  cta.href = p.cta;
+  document.getElementById("resultCard").classList.add("show");
+  document.getElementById("spinBtn").textContent = "Girar de nuevo";
+  document.getElementById("spinBtn").disabled = false;
+}
+</script>
+</body>
+</html>
